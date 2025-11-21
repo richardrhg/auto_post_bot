@@ -33,8 +33,16 @@ jobs:
         X_API_SECRET: ${{ secrets.X_API_SECRET }}
         X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
         X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
-        AUTO_POST_TO_X: true
+        AUTO_POST_TO_X: "true"
       run: |
         echo "開始執行市場分析..."
+        # 檢查必要的環境變數是否存在
+        if [ -z "$GEMINI_API_KEY" ]; then
+          echo "❌ 錯誤: GEMINI_API_KEY 未設定"
+          echo "請到 GitHub 儲存庫的 Settings > Secrets and variables > Actions 添加 GEMINI_API_KEY"
+          exit 1
+        fi
+        
+        echo "✅ 環境變數檢查完成"
         python main.py
         echo "市場分析完成！"
