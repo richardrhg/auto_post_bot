@@ -7,11 +7,11 @@ import tweepy
 import os
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
 import mplfinance as mpf
 import pandas as pd
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-import io
 
 # 載入環境變數文件
 load_dotenv()
