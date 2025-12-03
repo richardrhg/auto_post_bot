@@ -157,7 +157,7 @@ def get_prices():
     return market_info
 
 def create_price_chart(symbol, symbol_name, period='5d'):
-    """生成價格走勢圖並加上技術分析"""
+    """生成英文版價格走勢圖並加上技術分析"""
     try:
         print(f"正在生成 {symbol_name} 價格圖表...")
         
@@ -182,8 +182,8 @@ def create_price_chart(symbol, symbol_name, period='5d'):
         if hist.empty:
             return None
             
-        # 設定中文字體
-        plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Arial Unicode MS']
+        # 移除中文字體設定，使用默認英文字體
+        plt.rcParams['font.family'] = ['Arial', 'DejaVu Sans', 'sans-serif']
         plt.rcParams['axes.unicode_minus'] = False
         
         # 創建圖表
@@ -195,7 +195,7 @@ def create_price_chart(symbol, symbol_name, period='5d'):
         times = hist.index
         
         # 價格線 (綠色上漲，紅色下跌)
-        color = 'green' if prices.iloc[-1] > prices.iloc[0] else 'red'
+        color = '#26a69a' if prices.iloc[-1] > prices.iloc[0] else '#ef5350'
         ax.plot(times, prices, color=color, linewidth=3, alpha=0.8)
         
         # 計算支撐和阻力線
@@ -203,20 +203,35 @@ def create_price_chart(symbol, symbol_name, period='5d'):
         support_level = recent_prices.min()
         resistance_level = recent_prices.max()
         
-        # 畫支撐線
+        # 畫支撐線（英文標籤）
         ax.axhline(y=support_level, color='cyan', linestyle='--', linewidth=2, alpha=0.7)
-        ax.text(times[-1], support_level, f'支撐 ${support_level:.2f}', 
+        ax.text(times[-1], support_level, f'Support ${support_level:.2f}', 
                 color='cyan', fontsize=12, ha='right')
         
-        # 畫阻力線
+        # 畫阻力線（英文標籤）
         ax.axhline(y=resistance_level, color='orange', linestyle='--', linewidth=2, alpha=0.7)
-        ax.text(times[-1], resistance_level, f'阻力 ${resistance_level:.2f}', 
+        ax.text(times[-1], resistance_level, f'Resistance ${resistance_level:.2f}', 
                 color='orange', fontsize=12, ha='right')
         
-        # 設定圖表樣式
-        ax.set_title(f'{symbol_name} 價格走勢', color='white', fontsize=20, pad=20)
-        ax.set_xlabel('時間', color='white', fontsize=12)
-        ax.set_ylabel('價格 (USD)', color='white', fontsize=12)
+        # 英文幣種名稱對應
+        symbol_names_en = {
+            'BTC': 'Bitcoin (BTC)',
+            'ETH': 'Ethereum (ETH)', 
+            'BNB': 'Binance Coin (BNB)',
+            'ADA': 'Cardano (ADA)',
+            'SOL': 'Solana (SOL)',
+            'NVDA': 'NVIDIA Corporation',
+            'TSLA': 'Tesla Inc.',
+            'AAPL': 'Apple Inc.',
+            'COIN': 'Coinbase Global Inc.'
+        }
+        
+        display_name = symbol_names_en.get(symbol, symbol)
+        
+        # 設定圖表樣式（英文標題）
+        ax.set_title(f'{display_name} Price Chart', color='white', fontsize=20, pad=20, weight='bold')
+        ax.set_xlabel('Time', color='white', fontsize=12)
+        ax.set_ylabel('Price (USD)', color='white', fontsize=12)
         
         # 設定軸線顏色
         ax.tick_params(colors='white', labelsize=10)
@@ -228,13 +243,18 @@ def create_price_chart(symbol, symbol_name, period='5d'):
         # 添加網格
         ax.grid(True, alpha=0.3, color='gray')
         
-        # 加入當前價格標註
+        # 加入當前價格標註（英文）
         current_price = prices.iloc[-1]
         change_pct = ((current_price - prices.iloc[0]) / prices.iloc[0]) * 100
         
         price_text = f'${current_price:.2f} ({change_pct:+.1f}%)'
         ax.text(0.02, 0.95, price_text, transform=ax.transAxes,
                 fontsize=16, color='white', bbox=dict(boxstyle='round', facecolor='black', alpha=0.8))
+        
+        # 格式化 X 軸時間標籤
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d %H:%M'))
+        plt.xticks(rotation=45)
         
         plt.tight_layout()
         
