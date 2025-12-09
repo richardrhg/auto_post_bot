@@ -289,12 +289,11 @@ def generate_post(data_text, chart_info=None):
         
         # 嘗試不同的模型名稱（按優先順序）
         model_names = [
-            'models/gemini-2.5-pro',
-            'models/gemini-3.0-pro', 
             'models/gemini-2.5-flash',
-            'gemini-2.5-pro',
-            'gemini-3.0-pro',
-            'gemini-pro'
+            'models/gemini-2.5-pro',
+            'models/gemini-2.0-flash',
+            'models/gemini-flash-latest',
+            'models/gemini-pro-latest'
         ]
         
         model = None
