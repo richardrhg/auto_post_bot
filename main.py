@@ -405,7 +405,7 @@ def generate_post(data_text, chart_info=None):
 結尾問句：{question}
 
 要求：
-- 不超過 150 字元（因為有配圖）
+- 不超過 200 字元（因為有配圖，需要留空間給推廣連結）
 - 重點分析當前市場趨勢
 - 語氣專業但吸引人
 - 結尾必須使用提供的問句
@@ -423,7 +423,7 @@ def generate_post(data_text, chart_info=None):
 {data_text}
 
 要求：
-- 不超過 200 字元
+- 不超過 250 字元
 - 分析 1-2 個波動最大標的
 - 包含市場情緒
 - 結尾加 2-3 個 hashtag
