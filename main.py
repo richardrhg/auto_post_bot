@@ -286,10 +286,24 @@ def create_price_chart(symbol, symbol_name, period='5d'):
             'BNB': 'Binance Coin (BNB)',
             'ADA': 'Cardano (ADA)',
             'SOL': 'Solana (SOL)',
+            'XRP': 'XRP (XRP)',
+            'DOGE': 'Dogecoin (DOGE)',
+            'AVAX': 'Avalanche (AVAX)',
+            'MATIC': 'Polygon (MATIC)',
+            'DOT': 'Polkadot (DOT)',
             'NVDA': 'NVIDIA Corporation',
             'TSLA': 'Tesla Inc.',
             'AAPL': 'Apple Inc.',
-            'COIN': 'Coinbase Global Inc.'
+            'COIN': 'Coinbase Global Inc.',
+            'MSFT': 'Microsoft Corporation',
+            'GOOGL': 'Alphabet Inc. (Google)',
+            'AMZN': 'Amazon.com Inc.',
+            'META': 'Meta Platforms Inc.',
+            'NFLX': 'Netflix Inc.',
+            'AMD': 'Advanced Micro Devices Inc.',
+            'VOO': 'Vanguard S&P 500 ETF',
+            'QQQ': 'Invesco QQQ Trust ETF',
+            'SPY': 'SPDR S&P 500 ETF Trust'
         }
         
         display_name = symbol_names_en.get(symbol, symbol)
