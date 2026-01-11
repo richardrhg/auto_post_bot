@@ -58,6 +58,31 @@ TARGETS = {
         'source': 'coingecko',
         'coingecko_id': 'solana'
     },
+    'XRP': {
+        'name': '瑞波幣 (XRP)',
+        'source': 'coingecko',
+        'coingecko_id': 'ripple'
+    },
+    'DOGE': {
+        'name': '狗狗幣 (Dogecoin)',
+        'source': 'coingecko',
+        'coingecko_id': 'dogecoin'
+    },
+    'AVAX': {
+        'name': '雪崩幣 (Avalanche)',
+        'source': 'coingecko',
+        'coingecko_id': 'avalanche-2'
+    },
+    'MATIC': {
+        'name': '多邊形 (Polygon)',
+        'source': 'coingecko',
+        'coingecko_id': 'matic-network'
+    },
+    'DOT': {
+        'name': '波卡幣 (Polkadot)',
+        'source': 'coingecko',
+        'coingecko_id': 'polkadot'
+    },
     
     # 美股 (使用 Yahoo Finance)
     'NVDA': {
