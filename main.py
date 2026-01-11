@@ -187,14 +187,19 @@ def create_price_chart(symbol, symbol_name, period='5d'):
         print(f"正在生成 {symbol_name} 價格圖表...")
         
         # 獲取歷史數據
-        if symbol in ['BTC', 'ETH', 'BNB', 'ADA', 'SOL']:
+        if symbol in ['BTC', 'ETH', 'BNB', 'ADA', 'SOL', 'XRP', 'DOGE', 'AVAX', 'MATIC', 'DOT']:
             # 對於加密貨幣，使用 yfinance 的加密貨幣代碼
             crypto_symbols = {
                 'BTC': 'BTC-USD',
                 'ETH': 'ETH-USD', 
                 'BNB': 'BNB-USD',
                 'ADA': 'ADA-USD',
-                'SOL': 'SOL-USD'
+                'SOL': 'SOL-USD',
+                'XRP': 'XRP-USD',
+                'DOGE': 'DOGE-USD',
+                'AVAX': 'AVAX-USD',
+                'MATIC': 'MATIC-USD',
+                'DOT': 'DOT-USD'
             }
             ticker = yf.Ticker(crypto_symbols[symbol])
         else:
