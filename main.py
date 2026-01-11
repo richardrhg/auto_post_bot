@@ -413,7 +413,10 @@ def generate_post(data_text, chart_info=None):
 - 直接輸出推文內容
 - 不要提及這是AI生成的內容
 - 最後要加上一句推廣語句，例如「關注我獲取更多市場分析！」或「持續關注，掌握最新市場動態！」等。
-- 這是我的交易所連結：https://partner.bybit.com/b/COMEFROMX，請搭配推廣語句使用。
+- 推廣連結請智能選擇使用：
+  * 主要推廣：https://partner.bybit.com/b/COMEFROMX
+  * 或ether.fi卡片：https://www.ether.fi/refer/c4fd485d (美食15%回饋)
+  * 請根據字數限制智能選擇使用一個或兩個連結
 
 直接開始推文內容："""
         else:
@@ -431,7 +434,10 @@ def generate_post(data_text, chart_info=None):
 - 直接輸出推文內容，不要任何開場白或說明
 - 不要提及這是AI生成的內容
 - 最後要加上一句推廣語句，例如「關注我獲取更多市場分析！」或「持續關注，掌握最新市場動態！」等。
-- 這是我的交易所連結：https://partner.bybit.com/b/COMEFROMX，請搭配推廣語句使用。
+- 推廣連結請智能選擇使用：
+  * 主要推廣：https://partner.bybit.com/b/COMEFROMX 
+  * 或ether.fi卡片：https://www.ether.fi/refer/c4fd485d (美食15%回饋)
+  * 請根據字數限制智能選擇使用一個或兩個連結
 
 範例格式：
 今日市場[情緒]，BTC[$價格] ([漲跌%])... [簡短分析] 理性投資，控制風險。#BTC #投資
