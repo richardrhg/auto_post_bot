@@ -100,6 +100,42 @@ TARGETS = {
     'COIN': {
         'name': 'Coinbase',
         'source': 'yahoo'
+    },
+    'MSFT': {
+        'name': '微軟 (Microsoft)',
+        'source': 'yahoo'
+    },
+    'GOOGL': {
+        'name': '谷歌 (Google)',
+        'source': 'yahoo'
+    },
+    'AMZN': {
+        'name': '亞馬遜 (Amazon)',
+        'source': 'yahoo'
+    },
+    'META': {
+        'name': 'Meta (Facebook)',
+        'source': 'yahoo'
+    },
+    'NFLX': {
+        'name': '網飛 (Netflix)',
+        'source': 'yahoo'
+    },
+    'AMD': {
+        'name': 'AMD',
+        'source': 'yahoo'
+    },
+    'VOO': {
+        'name': 'Vanguard S&P 500 ETF',
+        'source': 'yahoo'
+    },
+    'QQQ': {
+        'name': '納斯達克100 ETF (QQQ)',
+        'source': 'yahoo'
+    },
+    'SPY': {
+        'name': 'SPDR S&P 500 ETF',
+        'source': 'yahoo'
     }
 }
 # =======================================
