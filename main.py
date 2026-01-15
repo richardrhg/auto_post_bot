@@ -29,6 +29,44 @@ X_ACCESS_TOKEN_SECRET = os.getenv('X_ACCESS_TOKEN_SECRET')
 # 自動發文設定 (雲端部署時建議設為 True)
 AUTO_POST_TO_X = os.getenv('AUTO_POST_TO_X', 'False').lower() == 'true' 
 
+# 推廣連結輪流配置
+PROMOTION_LINKS = [
+    {
+        'name': 'Bybit',
+        'url': 'https://partner.bybit.com/b/COMEFROMX',
+        'description': '主要推廣'
+    },
+    {
+        'name': 'Ether.fi',
+        'url': 'https://www.ether.fi/refer/c4fd485d',
+        'description': '美食10%回饋'
+    }
+]
+PROMOTION_INDEX_FILE = '.promotion_index'  # 用於記錄輪流位置
+
+def get_next_promotion_link():
+    """輪流返回推廣連結"""
+    try:
+        # 讀取上次的索引
+        if os.path.exists(PROMOTION_INDEX_FILE):
+            with open(PROMOTION_INDEX_FILE, 'r') as f:
+                index = int(f.read().strip())
+        else:
+            index = 0
+        
+        # 獲取當前連結
+        current_link = PROMOTION_LINKS[index % len(PROMOTION_LINKS)]
+        
+        # 保存下一個索引
+        next_index = (index + 1) % len(PROMOTION_LINKS)
+        with open(PROMOTION_INDEX_FILE, 'w') as f:
+            f.write(str(next_index))
+        
+        return current_link
+    except Exception as e:
+        print(f"⚠️ 讀取推廣連結失敗: {e}，使用默認連結")
+        return PROMOTION_LINKS[0]
+
 # 設定你想追蹤的標的 (可以自己增加)
 # 格式: {'symbol': '顯示名稱', 'source': '數據源', 'coingecko_id': 'CoinGecko ID (僅加密貨幣)'}
 TARGETS = {
@@ -364,6 +402,10 @@ def generate_post(data_text, chart_info=None):
     """傳送數據給 AI 寫文案"""
     print("正在呼叫 AI 生成文案...")
     
+    # 獲取今天應該推廣的連結
+    promo_link = get_next_promotion_link()
+    print(f"📢 今次使用推廣連結: {promo_link['name']} ({promo_link['description']})")
+    
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         
@@ -413,10 +455,8 @@ def generate_post(data_text, chart_info=None):
 - 直接輸出推文內容
 - 不要提及這是AI生成的內容
 - 最後要加上一句推廣語句，例如「關注我獲取更多市場分析！」或「持續關注，掌握最新市場動態！」等。
-- 推廣連結請智能選擇使用：
-  * 主要推廣：https://partner.bybit.com/b/COMEFROMX
-  * 或ether.fi卡片：https://www.ether.fi/refer/c4fd485d (美食15%回饋)
-  * 請根據字數限制智能選擇使用一個或兩個連結
+- 推廣連結：{promo_link['url']} ({promo_link['name']} - {promo_link['description']})
+- 在推文中自然地融入推廣連結
 
 直接開始推文內容："""
         else:
@@ -434,10 +474,8 @@ def generate_post(data_text, chart_info=None):
 - 直接輸出推文內容，不要任何開場白或說明
 - 不要提及這是AI生成的內容
 - 最後要加上一句推廣語句，例如「關注我獲取更多市場分析！」或「持續關注，掌握最新市場動態！」等。
-- 推廣連結請智能選擇使用：
-  * 主要推廣：https://partner.bybit.com/b/COMEFROMX 
-  * 或ether.fi卡片：https://www.ether.fi/refer/c4fd485d (美食15%回饋)
-  * 請根據字數限制智能選擇使用一個或兩個連結
+- 推廣連結：{promo_link['url']} ({promo_link['name']} - {promo_link['description']})
+- 在推文中自然地融入推廣連結
 
 範例格式：
 今日市場[情緒]，BTC[$價格] ([漲跌%])... [簡短分析] 理性投資，控制風險。#BTC #投資
