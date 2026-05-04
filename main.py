@@ -1,5 +1,9 @@
 import yfinance as yf
 import google.generativeai as genai
+try:
+    from google.api_core import exceptions as google_api_exceptions
+except ImportError:  # pragma: no cover
+    google_api_exceptions = None
 import datetime
 import requests
 import time
@@ -27,7 +31,15 @@ X_ACCESS_TOKEN = os.getenv('X_ACCESS_TOKEN')
 X_ACCESS_TOKEN_SECRET = os.getenv('X_ACCESS_TOKEN_SECRET')
 
 # 自動發文設定 (雲端部署時建議設為 True)
-AUTO_POST_TO_X = os.getenv('AUTO_POST_TO_X', 'False').lower() == 'true' 
+AUTO_POST_TO_X = os.getenv('AUTO_POST_TO_X', 'False').lower() == 'true'
+
+# Gemini：單一模型、單次 generate_content；節流避免短時間內多次請求撞 RPM
+# 模型列表見 https://ai.google.dev/gemini-api/docs/models
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash-lite').strip()
+GEMINI_RATE_STATE_FILE = os.getenv('GEMINI_RATE_STATE_FILE', '.gemini_rate_state').strip()
+GEMINI_MIN_SECONDS_BETWEEN_REQUESTS = float(
+    os.getenv('GEMINI_MIN_SECONDS_BETWEEN_REQUESTS', '0') or '0'
+) 
 
 # 推廣連結輪流配置
 PROMOTION_LINKS = [
@@ -387,6 +399,95 @@ def create_price_chart(symbol, symbol_name, period='5d'):
         print(f"圖表生成失敗 ({symbol}): {e}")
         return None
 
+def _normalize_gemini_model_id(name: str) -> str:
+    """接受 'gemini-2.5-flash' 或 'models/gemini-2.5-flash'。"""
+    n = (name or '').strip()
+    if not n:
+        return 'models/gemini-2.5-flash-lite'
+    if n.startswith('models/'):
+        return n
+    return f'models/{n}'
+
+
+def log_gemini_request_plan():
+    """發文流程中與 Gemini 相關的步驟說明（釐清何者會算進 RPM）。"""
+    print("\n─── Gemini 請求計畫（每次執行 main.py 發一篇）───")
+    print("  • genai.configure(api_key=…) — 僅設定 SDK，不計入 Gemini API 請求次數。")
+    print("  • GenerativeModel(…) — 建立客戶端物件，不計入 RPM。")
+    print("  • generate_content(…) — 計 1 次 HTTP/API 請求（RPM / RPD 主要看這裡）。")
+    print("  • 本程式設計：每次貼文只呼叫 generate_content 正好 1 次。")
+    print(f"  • 使用模型（環境變數 GEMINI_MODEL）: {_normalize_gemini_model_id(GEMINI_MODEL)}")
+    if GEMINI_MIN_SECONDS_BETWEEN_REQUESTS > 0:
+        print(
+            f"  • 節流：兩次 generate_content 之間至少間隔 "
+            f"{GEMINI_MIN_SECONDS_BETWEEN_REQUESTS:.0f}s（狀態檔: {GEMINI_RATE_STATE_FILE}）。"
+        )
+    else:
+        print("  • 節流：未啟用（GEMINI_MIN_SECONDS_BETWEEN_REQUESTS=0）。")
+    print("──────────────────────────────────────────────\n")
+
+
+def _gemini_throttle_before_request():
+    """跨多次程式執行時，強制兩次 API 之間至少間隔 N 秒（需搭配持久化 state 檔，例如 CI cache）。"""
+    if GEMINI_MIN_SECONDS_BETWEEN_REQUESTS <= 0:
+        return
+    path = GEMINI_RATE_STATE_FILE
+    last_ts = 0.0
+    if os.path.isfile(path):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                first = f.read().strip().splitlines()
+            if first:
+                last_ts = float(first[0].strip())
+        except (ValueError, OSError) as e:
+            print(f"⚠️ 讀取 Gemini 節流狀態檔失敗（將視為首次請求）: {e}")
+    elapsed = time.time() - last_ts
+    need_wait = GEMINI_MIN_SECONDS_BETWEEN_REQUESTS - elapsed
+    if need_wait > 0:
+        print(
+            f"⏳ Gemini 節流：與上次 API 請求需間隔至少 "
+            f"{GEMINI_MIN_SECONDS_BETWEEN_REQUESTS:.0f}s，等待 {need_wait:.1f}s …"
+        )
+        time.sleep(need_wait)
+
+
+def _gemini_throttle_mark_after_request():
+    """在 generate_content 結束後更新（無論成功或失敗，皆視為已消耗一次請求額度）。"""
+    if GEMINI_MIN_SECONDS_BETWEEN_REQUESTS <= 0:
+        return
+    path = GEMINI_RATE_STATE_FILE
+    try:
+        parent = os.path.dirname(os.path.abspath(path))
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(f'{time.time():.6f}\n')
+    except OSError as e:
+        print(f"⚠️ 寫入 Gemini 節流狀態檔失敗: {e}")
+
+
+def _is_gemini_quota_or_rate_limit_error(exc: BaseException) -> bool:
+    """辨識 Gemini 429 / 額度或速率限制錯誤，避免將錯誤內容當推文發出。"""
+    if google_api_exceptions is not None and isinstance(
+        exc, google_api_exceptions.ResourceExhausted
+    ):
+        return True
+    msg = str(exc).lower()
+    markers = (
+        "429",
+        "resource exhausted",
+        "resourceexhausted",
+        "exceeded your current quota",
+        "quota",
+        "rate limit",
+        "rate-limit",
+        "您已超過",
+        "使用額度",
+        "too many requests",
+    )
+    return any(m in msg for m in markers)
+
+
 def generate_engaging_question(symbol, price, change_pct, symbol_name):
     """生成吸引人的問句"""
     if change_pct > 5:
@@ -399,37 +500,22 @@ def generate_engaging_question(symbol, price, change_pct, symbol_name):
         return f"{symbol_name}現報${price:.0f}，接下來會如何？"
 
 def generate_post(data_text, chart_info=None):
-    """傳送數據給 AI 寫文案"""
+    """傳送數據給 AI 寫文案。失敗時回傳 None（請勿把錯誤字串當推文發布）。
+
+    僅使用單一 GEMINI_MODEL、單次 generate_content，避免輪詢模型造成額外風險。
+    """
     print("正在呼叫 AI 生成文案...")
     
     # 獲取今天應該推廣的連結
     promo_link = get_next_promotion_link()
     print(f"📢 今次使用推廣連結: {promo_link['name']} ({promo_link['description']})")
+    log_gemini_request_plan()
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        
-        # 嘗試不同的模型名稱（按優先順序）
-        model_names = [
-            'models/gemini-2.5-flash',
-            'models/gemini-2.5-pro',
-            'models/gemini-2.0-flash',
-            'models/gemini-flash-latest',
-            'models/gemini-pro-latest'
-        ]
-        
-        model = None
-        for model_name in model_names:
-            try:
-                print(f"嘗試模型: {model_name}")
-                model = genai.GenerativeModel(model_name)
-                break  # 成功創建模型就跳出
-            except Exception as e:
-                print(f"模型 {model_name} 失敗: {e}")
-                continue
-        
-        if model is None:
-            raise Exception("無法找到可用的模型")
+        model_id = _normalize_gemini_model_id(GEMINI_MODEL)
+        print(f"🤖 使用單一模型（1 次 generate_content）: {model_id}")
+        model = genai.GenerativeModel(model_id)
         
         # 判斷是否為圖表版本
         if chart_info:
@@ -482,7 +568,11 @@ def generate_post(data_text, chart_info=None):
 
 直接開始推文內容："""
         
-        response = model.generate_content(prompt)
+        _gemini_throttle_before_request()
+        try:
+            response = model.generate_content(prompt)
+        finally:
+            _gemini_throttle_mark_after_request()
         
         # 清理 AI 回覆，移除不必要的開場白
         content = response.text.strip()
@@ -513,7 +603,18 @@ def generate_post(data_text, chart_info=None):
     
     except Exception as e:
         print(f"AI 生成失敗: {e}")
-        return f"無法生成 AI 文案，請檢查 API Key 是否正確。錯誤: {str(e)}"
+        if _is_gemini_quota_or_rate_limit_error(e):
+            print(
+                "⚠️ 偵測到 Gemini 額度或速率限制（429 / quota），本次不發文，"
+                "避免將錯誤說明當成推文。"
+            )
+            print(
+                "   額度說明: https://ai.google.dev/gemini-api/docs/rate-limits"
+            )
+            print("   使用狀況: https://ai.dev/rate-limit")
+        else:
+            print("⚠️ 文案生成失敗，本次不發文。")
+        return None
 
 def verify_x_credentials():
 
@@ -702,15 +803,19 @@ if __name__ == "__main__":
             print(f"❌ 圖表生成失敗: {e}")
             print("將使用純文字模式...")
         
-        # 3. 寫文案
+        # 3. 寫文案（Gemini 僅在此步驟呼叫，且每次執行只 generate_content 一次）
+        print("\n📎 流程：抓資料 → 繪圖（無 Gemini）→ Gemini 單次生成 → 發文")
         post_content = generate_post(data, chart_info)
         
-        print("\n======= AI 生成的貼文預覽 =======")
-        print(post_content)
-        print("================================")
+        if post_content is None:
+            print("\n❌ 未取得有效 AI 文案，已跳過發文。")
+        else:
+            print("\n======= AI 生成的貼文預覽 =======")
+            print(post_content)
+            print("================================")
         
         # 4. 詢問是否要發布到 X
-        if x_keys_set:
+        if x_keys_set and post_content is not None:
             if AUTO_POST_TO_X:
                 # 自動發文模式
                 print("\n🤖 自動發文模式啟用，正在發布到 X...")
