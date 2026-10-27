@@ -721,6 +721,7 @@ def post_to_x(content, image_path=None):
             print(f"✅ 推文發布成功！")
             print(f"推文 ID: {tweet_id}")
             print(f"推文連結: https://twitter.com/i/web/status/{tweet_id}")
+            print(f"🔗 Tweet URL: https://twitter.com/i/web/status/{tweet_id}")
             return True
         else:
             print("❌ 推文發布失敗：沒有回應數據")
@@ -778,6 +779,10 @@ if __name__ == "__main__":
     # 1. 抓數據
     data = get_prices()
     
+    if not data:
+        print("❌ 抓取數據失敗，請檢查網路或代號。")
+        exit(1)
+    
     if data:
         print(f"----------------\n抓取到的數據:\n{data}----------------")
         
@@ -809,6 +814,7 @@ if __name__ == "__main__":
         
         if post_content is None:
             print("\n❌ 未取得有效 AI 文案，已跳過發文。")
+            exit(1)
         else:
             print("\n======= AI 生成的貼文預覽 =======")
             print(post_content)
@@ -824,6 +830,7 @@ if __name__ == "__main__":
                     print("🎉 貼文已自動發布到 X!")
                 else:
                     print("😞 自動發布失敗，請檢查 X API 設定")
+                    exit(1)
             else:
                 # 手動確認模式
                 while True:

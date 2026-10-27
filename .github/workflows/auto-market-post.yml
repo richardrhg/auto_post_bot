@@ -49,6 +49,7 @@ jobs:
         X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
         AUTO_POST_TO_X: "true"
       run: |
+        set -e  # 任何命令失敗時立即退出
         echo "開始執行市場分析..."
         # 檢查必要的環境變數是否存在
         if [ -z "$GEMINI_API_KEY" ]; then
@@ -59,4 +60,4 @@ jobs:
         
         echo "✅ 環境變數檢查完成"
         python main.py
-        echo "市場分析完成！"
+        echo "✅ 市場分析與發文完成！"
